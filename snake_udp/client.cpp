@@ -35,9 +35,10 @@ char N;
 struct hostent *host;
 struct sockaddr_in servaddr;
 
-const int width = 30;
+const int width = 150;
 
-const int height = 30;
+const int height = 150;
+
 
 char matrix[width][height];
 int points;
@@ -103,7 +104,7 @@ void Draw()
     cout << endl;
   }
 
-  cout<<"POINTS: " <<endl;
+  cout<<"POINTS: " << points <<endl;
 }
 
 

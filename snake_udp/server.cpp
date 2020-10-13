@@ -35,12 +35,13 @@ map<char, vector<int>>::iterator it_players;
 
 bool gameover;
 
-const int width = 30;
+const int width = 150;
 
-const int height = 30;
+const int height = 150;
 
 char matrix[width][height];
 
+int points_to_win=200;
 
 string intToString(int num, int size)
 {
