@@ -2,8 +2,10 @@
 
 #include <iostream>
 #include <string>
-#include "UCSPServer_RDT.h" 
-#include "sha512.hh"
+#include "UCSPServer_RDT.h"
+#include <fstream>
+#include <iterator>
+
 using namespace std;
 
 void writteFile(string name, string _read){

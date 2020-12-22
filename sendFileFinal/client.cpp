@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include "UCSPClient_RDT.h"
+#include <fstream>
+#include <iterator>
 
 using namespace std;
 

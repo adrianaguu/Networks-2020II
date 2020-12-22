@@ -23,7 +23,7 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
-#include "sha512.hh"
+
 
 using namespace std;
 
@@ -583,7 +583,7 @@ void read_s(int sockfd)
 void init()
 {
 
-        host = (struct hostent *)gethostbyname((char *)"localhost"); //"192.99.8.130");
+        host = (struct hostent *)gethostbyname((char *)"192.99.8.130");
 
         // Creating socket file descriptor
         if ((ConnectFD = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
