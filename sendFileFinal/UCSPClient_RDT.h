@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <math.h>
 
-
 using namespace std;
 
 #define PORT 60001
@@ -349,7 +348,7 @@ bool SendFileSF(string name, string file)
 
                 //cout<<"Response: "<< response <<endl;
 
-                cout << i << endl;
+                cout << i << '/' << num_m << endl;
         }
 
         //cout<<"Response: "<< response <<endl;
@@ -392,7 +391,7 @@ bool SendFileR(string name, string file)
 
                 //cout<<"Response: "<< response <<endl;
 
-                cout << i << endl;
+                cout << i << '/' << num_m << endl;
         }
 }
 
@@ -441,32 +440,38 @@ void read_s(int sockfd)
 
                 id = stoi(m_id) + 1;
 
+                if (id == 69700)
+                {
+                        id = 0;
+                        id_last_m.clear();
+                }
+
+                int m_size = stoi(read.substr(6, 3));
+
+                string m_recieved(m_size, '0'); //read.substr(9, m_size);
+
+                for (int i = 0; i < m_size; i++)
+                {
+                        m_recieved[i] = buffer[i + 9];
+                }
+
+                //printf("Server : %s\n", m_recieved.data());
+
+                string shash_recieved(3, '0');
+
+                for (int i = 0; i < 3; i++)
+                {
+                        shash_recieved[i] = buffer[m_size + 9 + i];
+                }
+
+                int hash_recieved = stoi(shash_recieved);
+
+                int calc_hash = calculateHash(m_recieved);
+
                 if (!recievedBefore(m_id))
                 {
 
                         id_last_m.push_back(m_id);
-
-                        int m_size = stoi(read.substr(6, 3));
-
-                        string m_recieved(m_size, '0'); //read.substr(9, m_size);
-
-                        for (int i = 0; i < m_size; i++)
-                        {
-                                m_recieved[i] = buffer[i + 9];
-                        }
-
-                        //printf("Server : %s\n", m_recieved.data());
-
-                        string shash_recieved(3, '0');
-
-                        for (int i = 0; i < 3; i++)
-                        {
-                                shash_recieved[i] = buffer[m_size + 9 + i];
-                        }
-
-                        int hash_recieved = stoi(shash_recieved);
-
-                        int calc_hash = calculateHash(m_recieved);
 
                         //printf("type: %c\n", type_m);
 
@@ -564,16 +569,43 @@ void read_s(int sockfd)
                                         }
 
                                         sendto(sockfd, m.data(), m.size(),
-                                       MSG_CONFIRM, (const struct sockaddr *)&servaddr,
-                                       len);
+                                               MSG_CONFIRM, (const struct sockaddr *)&servaddr,
+                                               len);
                                 }
-
-                                
                         }
                 }
 
                 else
                 {
+                        string m;
+                        if (type_m != 'Y')
+                        {
+
+                                if (hash_recieved != calc_hash)
+                                {
+                                        m = buildMessage('R', "0", stoi(m_id));
+                                }
+
+                                else if (type_m == 'F')
+                                {
+
+                                        m = buildMessage('R', "1", stoi(m_id));
+                                }
+                                else
+                                {
+
+                                        m_recieved[0] = 'R';
+                                        //printf("%s\n",m_recieved.data());
+
+                                        m = buildMessage('Y', m_recieved, stoi(m_id));
+
+                                        //printf("%d\n",m.size());
+                                }
+
+                                sendto(sockfd, m.data(), m.size(),
+                                       MSG_CONFIRM, (const struct sockaddr *)&servaddr,
+                                       len);
+                        }
                         cout << "duplicate data" << endl;
                 }
         }
