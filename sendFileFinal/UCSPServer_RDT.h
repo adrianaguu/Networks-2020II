@@ -155,10 +155,23 @@ void SolicitateProcces(string message, string *response)
                 string m_id = read.substr(1, 5);
 
                 int m_size = stoi(read.substr(6, 3));
+                string m_recieved(m_size, '0'); //read.substr(9, m_size);
 
-                string m_recieved = read.substr(9, m_size);
+                for (int i = 0; i < m_size; i++)
+                {
+                        m_recieved[i] = buffer[i + 9];
+                }
 
-                int hash_recieved = stoi(read.substr(9 + m_size, 3));
+                //printf("Client sent %d : %s\n",m_recieved.size(),m_recieved.data());
+
+                string shash_recieved(3, '0');
+
+                for (int i = 0; i < 3; i++)
+                {
+                        shash_recieved[i] = buffer[m_size + 9 + i];
+                }
+
+                int hash_recieved = stoi(shash_recieved);
 
                 if (m_recieved == m_error)
                 {
@@ -185,7 +198,7 @@ string Solicitate(string message)
 {
         message = buildMessage('3', message, id);
 
-        id++;
+        //id++;
 
         string response;
 
@@ -208,9 +221,23 @@ void NotificateProcces(string message, string *response, bool *succes)
 
                 int m_size = stoi(read.substr(6, 3));
 
-                string m_recieved = read.substr(9, m_size);
+                string m_recieved(m_size, '0'); //read.substr(9, m_size);
 
-                int hash_recieved = stoi(read.substr(9 + m_size, 3));
+                for (int i = 0; i < m_size; i++)
+                {
+                        m_recieved[i] = buffer[i + 9];
+                }
+
+                //printf("Client sent %d : %s\n",m_recieved.size(),m_recieved.data());
+
+                string shash_recieved(3, '0');
+
+                for (int i = 0; i < 3; i++)
+                {
+                        shash_recieved[i] = buffer[m_size + 9 + i];
+                }
+
+                int hash_recieved = stoi(shash_recieved);
 
                 if (m_recieved == "0")
                 {
@@ -241,7 +268,7 @@ bool Notificate(string message)
 {
         message = buildMessage('6', message, id);
 
-        id++;
+        //id++;
 
         string response;
 
@@ -299,12 +326,11 @@ void waitFile()
         while (!complete_file)
         {
         }
-
 }
 
 string getFile(string *name)
 {
-        
+
         thread wait_file(waitFile);
         wait_file.join();
         *name = files.begin()->first;
@@ -319,10 +345,93 @@ void cleanReceived()
         received = "";
 }
 
+bool SendFileN(string name, string file)
+{
+        bool global_success;
+        int tam_m = MAXLINE - 20 - name.size();
+        int num_m = ceil((float)file.size() / (float)tam_m);
+        string snum_m = intToString(num_m, 6);
+
+        for (int i = 0; i < num_m; i++)
+        {
+                string message = "";
+                if (i == num_m - 1)
+                {
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, file.size() - i * tam_m);
+                }
+                else
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, tam_m);
+
+                message = buildMessage('F', message, id);
+
+                //cout<<"mess size "<<message<<endl;
+
+                //id++;
+
+                string response;
+
+                bool success;
+
+                //cout<<message;
+
+                std::thread process(NotificateProcces, message, &response, &success);
+
+                process.join();
+
+                global_success = global_success and success;
+
+                //cout<<"Response: "<< response <<endl;
+
+                cout << i << endl;
+        }
+
+        //cout<<"Response: "<< response <<endl;
+
+        return global_success;
+}
+
+bool SendFileS(string name, string file)
+{
+
+        int tam_m = MAXLINE - 20 - name.size();
+        int num_m = ceil((float)file.size() / (float)tam_m);
+        string snum_m = intToString(num_m, 6);
+
+        for (int i = 0; i < num_m; i++)
+        {
+                string message = "";
+                if (i == num_m - 1)
+                {
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, file.size() - i * tam_m);
+                }
+                else
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, tam_m);
+
+                message = buildMessage('T', message, id);
+
+                //cout<<"mess size "<<message<<endl;
+
+                //id++;
+
+                string response;
+
+                bool success;
+
+                //cout<<message;
+
+                std::thread process(SolicitateProcces, message, &response);
+
+                process.join();
+
+                //cout<<"Response: "<< response <<endl;
+
+                cout << i << endl;
+        }
+}
+
 void read_s(int sockfd)
 {
         int n;
-       
 
         while (1)
         {
@@ -332,14 +441,14 @@ void read_s(int sockfd)
                              &len);
                 buffer[n] = '\0';
 
-
                 string read = buffer;
                 ack = read;
-
 
                 char type_m = buffer[0];
 
                 string m_id = read.substr(1, 5);
+
+                id = stoi(m_id) + 1;
 
                 printf("M id : %s\n", m_id.data());
 
@@ -352,19 +461,20 @@ void read_s(int sockfd)
 
                         //printf("%d\n",m_size);
 
-                        string m_recieved(m_size,'0');//read.substr(9, m_size);
+                        string m_recieved(m_size, '0'); //read.substr(9, m_size);
 
-                        for(int i=0;i<m_size;i++){
-                                m_recieved[i]=buffer[i+9];
+                        for (int i = 0; i < m_size; i++)
+                        {
+                                m_recieved[i] = buffer[i + 9];
                         }
-
 
                         //printf("Client sent %d : %s\n",m_recieved.size(),m_recieved.data());
 
-                        string shash_recieved(3,'0');
+                        string shash_recieved(3, '0');
 
-                        for(int i=0;i<3;i++){
-                                shash_recieved[i]=buffer[m_size+9+i];
+                        for (int i = 0; i < 3; i++)
+                        {
+                                shash_recieved[i] = buffer[m_size + 9 + i];
                         }
 
                         int hash_recieved = stoi(shash_recieved);
@@ -380,11 +490,10 @@ void read_s(int sockfd)
                                 if (hash_recieved != calc_hash)
                                 {
                                         string m = buildMessage('2', m_error, stoi(m_id));
-                                      
                                 }
-                                        sendto(sockfd, m.data(), m.size(),
-                                               MSG_CONFIRM, (const struct sockaddr *)&cliaddr,
-                                               len);
+                                sendto(sockfd, m.data(), m.size(),
+                                       MSG_CONFIRM, (const struct sockaddr *)&cliaddr,
+                                       len);
                         }
 
                         else if (type_m == 'B')
@@ -423,23 +532,25 @@ void read_s(int sockfd)
                                        len);
                         }
 
-                        else if (type_m == 'F')
+                        else if (type_m == 'F' || type_m == 'T' || type_m == 'Y')
                         {
                                 received = m_recieved;
                                 received_id = m_id;
 
                                 int i = m_recieved.find(':');
 
-                           
-
                                 string name = m_recieved.substr(0, i);
 
-                                //printf("name : %s\n", name.data());
+                                // printf("name : %s\n", name.data());
                                 string temp_file = m_recieved.substr(i + 1, m_recieved.size() - 1);
-                                //printf("temp : %s\n", temp_file.data());
+                                // printf("temp : %s\n", temp_file.data());
                                 i = temp_file.find(":");
-                                int num_files = stoi(temp_file.substr(0, i));
+
+                                string snum_files = temp_file.substr(0, i);
+                                int num_files = stoi(snum_files);
                                 string file = temp_file.substr(i + 1, temp_file.size() - 1);
+
+                                // printf("file : %s\n", file.data());
 
                                 if (files.find(name) != files.end())
                                 {
@@ -456,17 +567,43 @@ void read_s(int sockfd)
                                         complete_file = false;
                                 }
 
-                                string m = buildMessage('R', "1", stoi(m_id));
+                                string m;
 
-                                if (hash_recieved != calc_hash)
+                                if (type_m != 'Y')
                                 {
-                                        m = buildMessage('R', "0", stoi(m_id));
-                                }
 
-                                sendto(sockfd, m.data(), m.size(),
+                                        if (hash_recieved != calc_hash)
+                                        {
+                                                m = buildMessage('R', "0", stoi(m_id));
+                                        }
+
+                                        else if (type_m == 'F')
+                                        {
+
+                                                m = buildMessage('R', "1", stoi(m_id));
+                                        }
+                                        else
+                                        {
+
+                                                m_recieved[0] = 'R';
+                                                //printf("%s\n",m_recieved.data());
+
+                                                m = buildMessage('Y', m_recieved, stoi(m_id));
+
+                                                //printf("%d\n",m.size());
+                                        }
+
+                                        sendto(sockfd, m.data(), m.size(),
                                        MSG_CONFIRM, (const struct sockaddr *)&cliaddr,
                                        len);
+                                }
+
+                                
                         }
+                }
+                else
+                {
+                        cout << "duplicate data" << endl;
                 }
         }
 }

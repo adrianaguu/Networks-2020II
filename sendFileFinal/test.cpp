@@ -42,7 +42,7 @@ int main(){
  
   std::ifstream input( "image.jpg", std::ios::binary );
   std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
-  writeFile("u.jpg",buffer);
+  writeFile("u1.jpg",buffer);
   
   return 1;
 

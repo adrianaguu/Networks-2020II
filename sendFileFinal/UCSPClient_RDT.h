@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <map>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -44,7 +45,16 @@ struct hostent *host;
 
 struct sockaddr_in servaddr;
 
+bool complete_file = false;
+
+string received = "";
+string received_id = "";
+
 int ConnectFD;
+
+map<string, string> files;
+
+map<string, int> count_files;
 
 string intToString(int num, int size)
 {
@@ -105,8 +115,6 @@ string sendRDT(int s, string m, int times)
                 return "";
         }
 
-        
-
         struct timeval start, end;
 
         long mtime, seconds, useconds;
@@ -157,9 +165,23 @@ void requestProcces(string message, string *response)
 
                 int m_size = stoi(read.substr(6, 3));
 
-                string m_recieved = read.substr(9, m_size);
+                string m_recieved(m_size, '0'); //read.substr(9, m_size);
 
-                int hash_recieved = stoi(read.substr(9 + m_size, 3));
+                for (int i = 0; i < m_size; i++)
+                {
+                        m_recieved[i] = buffer[i + 9];
+                }
+
+                //printf("Client sent %d : %s\n",m_recieved.size(),m_recieved.data());
+
+                string shash_recieved(3, '0');
+
+                for (int i = 0; i < 3; i++)
+                {
+                        shash_recieved[i] = buffer[m_size + 9 + i];
+                }
+
+                int hash_recieved = stoi(shash_recieved);
 
                 if (m_recieved == m_error)
                 {
@@ -185,20 +207,18 @@ void requestProcces(string message, string *response)
 
 string Request(string message)
 {
-         
 
         message = buildMessage('1', message, id);
 
-     
-        id++;
+        //id++;
 
-        string response="";
+        string response = "";
 
         std::thread process(requestProcces, message, &response);
 
         process.join();
 
-         printf("%s\n",response.data());
+        printf("%s\n", response.data());
 
         return response;
 }
@@ -207,7 +227,7 @@ string RequestData(string message)
 {
         message = buildMessage('B', message, id);
 
-        id++;
+        //id++;
 
         string response;
 
@@ -230,9 +250,23 @@ void sendandforgetProcces(string message, string *response, bool *succes)
 
                 int m_size = stoi(read.substr(6, 3));
 
-                string m_recieved = read.substr(9, m_size);
+                string m_recieved(m_size, '0'); //read.substr(9, m_size);
 
-                int hash_recieved = stoi(read.substr(9 + m_size, 3));
+                for (int i = 0; i < m_size; i++)
+                {
+                        m_recieved[i] = buffer[i + 9];
+                }
+
+                //printf("Client sent %d : %s\n",m_recieved.size(),m_recieved.data());
+
+                string shash_recieved(3, '0');
+
+                for (int i = 0; i < 3; i++)
+                {
+                        shash_recieved[i] = buffer[m_size + 9 + i];
+                }
+
+                int hash_recieved = stoi(shash_recieved);
 
                 if (m_recieved == "0")
                 {
@@ -263,7 +297,7 @@ bool SendAndForget(string message)
 {
         message = buildMessage('5', message, id);
 
-        id++;
+        //id++;
 
         string response;
 
@@ -278,28 +312,28 @@ bool SendAndForget(string message)
         return success;
 }
 
-bool SendFile(string name, string file)
-{       
+bool SendFileSF(string name, string file)
+{
         bool global_success;
         int tam_m = MAXLINE - 20 - name.size();
         int num_m = ceil((float)file.size() / (float)tam_m);
         string snum_m = intToString(num_m, 6);
 
-
         for (int i = 0; i < num_m; i++)
         {
                 string message = "";
-                if(i==num_m-1){
-                        message = name + ":" + snum_m + ":" + file.substr(i*tam_m,file.size()-i*tam_m); 
+                if (i == num_m - 1)
+                {
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, file.size() - i * tam_m);
                 }
                 else
-                        message = name + ":" + snum_m + ":" + file.substr(i*tam_m,tam_m);
-                
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, tam_m);
+
                 message = buildMessage('F', message, id);
 
                 //cout<<"mess size "<<message<<endl;
 
-                id++;
+                //id++;
 
                 string response;
 
@@ -315,12 +349,71 @@ bool SendFile(string name, string file)
 
                 //cout<<"Response: "<< response <<endl;
 
-                cout<<i<<endl;
+                cout << i << endl;
         }
 
         //cout<<"Response: "<< response <<endl;
 
         return global_success;
+}
+
+bool SendFileR(string name, string file)
+{
+
+        int tam_m = MAXLINE - 20 - name.size();
+        int num_m = ceil((float)file.size() / (float)tam_m);
+        string snum_m = intToString(num_m, 6);
+
+        for (int i = 0; i < num_m; i++)
+        {
+                string message = "";
+                if (i == num_m - 1)
+                {
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, file.size() - i * tam_m);
+                }
+                else
+                        message = name + ":" + snum_m + ":" + file.substr(i * tam_m, tam_m);
+
+                message = buildMessage('T', message, id);
+
+                //cout<<"mess size "<<message<<endl;
+
+                //id++;
+
+                string response;
+
+                bool success;
+
+                //cout<<message;
+
+                std::thread process(requestProcces, message, &response);
+
+                process.join();
+
+                //cout<<"Response: "<< response <<endl;
+
+                cout << i << endl;
+        }
+}
+
+void waitFile()
+{
+        while (!complete_file)
+        {
+        }
+}
+
+string getFile(string *name)
+{
+
+        thread wait_file(waitFile);
+        wait_file.join();
+
+        *name = files.begin()->first;
+        string file = files.begin()->second;
+        complete_file = false;
+        files.erase(files.begin()->first);
+        return file;
 }
 
 void read_s(int sockfd)
@@ -344,6 +437,10 @@ void read_s(int sockfd)
 
                 string m_id = read.substr(1, 5);
 
+                printf("M id : %s\n", m_id.data());
+
+                id = stoi(m_id) + 1;
+
                 if (!recievedBefore(m_id))
                 {
 
@@ -351,11 +448,23 @@ void read_s(int sockfd)
 
                         int m_size = stoi(read.substr(6, 3));
 
-                        string m_recieved = read.substr(9, m_size);
+                        string m_recieved(m_size, '0'); //read.substr(9, m_size);
 
-                        printf("Server : %s\n", m_recieved.data());
+                        for (int i = 0; i < m_size; i++)
+                        {
+                                m_recieved[i] = buffer[i + 9];
+                        }
 
-                        int hash_recieved = stoi(read.substr(9 + m_size, 3));
+                        //printf("Server : %s\n", m_recieved.data());
+
+                        string shash_recieved(3, '0');
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                                shash_recieved[i] = buffer[m_size + 9 + i];
+                        }
+
+                        int hash_recieved = stoi(shash_recieved);
 
                         int calc_hash = calculateHash(m_recieved);
 
@@ -392,6 +501,80 @@ void read_s(int sockfd)
                                        MSG_CONFIRM, (const struct sockaddr *)&servaddr,
                                        len);
                         }
+
+                        else if (type_m == 'F' || type_m == 'Y' || type_m == 'T')
+                        {
+                                received = m_recieved;
+                                received_id = m_id;
+
+                                int i = m_recieved.find(':');
+
+                                string name = m_recieved.substr(0, i);
+
+                                //printf("name : %s\n", name.data());
+                                string temp_file = m_recieved.substr(i + 1, m_recieved.size() - 1);
+                                //printf("temp : %s\n", temp_file.data());
+                                i = temp_file.find(":");
+
+                                string snum_files = temp_file.substr(0, i);
+                                int num_files = stoi(snum_files);
+                                string file = temp_file.substr(i + 1, temp_file.size() - 1);
+
+                                //printf("file : %s\n", file.data());
+
+                                if (files.find(name) != files.end())
+                                {
+                                        files[name] += file;
+                                        count_files[name] += 1;
+                                        if (num_files == count_files[name])
+                                                complete_file = true;
+                                }
+
+                                else
+                                {
+                                        files[name] = file;
+                                        count_files[name] = 1;
+                                        complete_file = false;
+                                }
+
+                                string m;
+
+                                if (type_m != 'Y')
+                                {
+
+                                        if (hash_recieved != calc_hash)
+                                        {
+                                                m = buildMessage('R', "0", stoi(m_id));
+                                        }
+
+                                        else if (type_m == 'F')
+                                        {
+
+                                                m = buildMessage('R', "1", stoi(m_id));
+                                        }
+                                        else
+                                        {
+
+                                                m_recieved[0] = 'S';
+                                                //printf("%s\n",m_recieved.data());
+
+                                                m = buildMessage('Y', m_recieved, stoi(m_id));
+
+                                                //printf("%d\n",m.size());
+                                        }
+
+                                        sendto(sockfd, m.data(), m.size(),
+                                       MSG_CONFIRM, (const struct sockaddr *)&servaddr,
+                                       len);
+                                }
+
+                                
+                        }
+                }
+
+                else
+                {
+                        cout << "duplicate data" << endl;
                 }
         }
 }
@@ -400,7 +583,7 @@ void read_s(int sockfd)
 void init()
 {
 
-        host = (struct hostent *)gethostbyname((char *)"192.99.8.130");
+        host = (struct hostent *)gethostbyname((char *)"localhost"); //"192.99.8.130");
 
         // Creating socket file descriptor
         if ((ConnectFD = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
