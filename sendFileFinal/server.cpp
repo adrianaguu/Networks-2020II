@@ -35,7 +35,13 @@ void a_read(){
 
 void a_write(){
 
-  std::ifstream input( "image.jpg", std::ios::binary );
+  
+  while(1){
+
+    cout<<"Input the path: ";
+    string path;
+    cin >> path;
+  std::ifstream input( path, std::ios::binary );
   std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
 
   string _read(buffer.size(),'0');
@@ -54,6 +60,7 @@ void a_write(){
 
     SendFileS("imageS.jpg",_read);
 
+  }
   }
 
 }

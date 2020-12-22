@@ -34,7 +34,15 @@ int main(){
 
 
   init();
-  std::ifstream input( "image.jpg", std::ios::binary );
+
+   thread t_read(a_read);
+
+  while(1){
+
+    cout<<"Input the path: ";
+    string path;
+    cin >> path;
+  std::ifstream input( path, std::ios::binary );
   std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
 
   string _read(buffer.size(),'0');
@@ -56,12 +64,11 @@ cout<<"input 1 to SendForget and 2 to Request: ";
     SendFileR("imageREQ.jpg",_read);
     
   }
-  
-
-  thread t_read(a_read);
+  }
  
 
   t_read.join();
+
 
 
   
